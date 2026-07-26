@@ -1,7 +1,7 @@
-import Voice, {
-  SpeechErrorEvent,
-  SpeechResultsEvent
-} from "@react-native-voice/voice";
+import {
+  ExpoSpeechRecognitionModule,
+  useSpeechRecognitionEvent
+} from "expo-speech-recognition";
 import { StatusBar } from "expo-status-bar";
 import { useEffect, useMemo, useState } from "react";
 import {
@@ -38,20 +38,16 @@ export default function App() {
     requestNotificationPermission().catch(() => undefined);
   }, []);
 
-  useEffect(() => {
-    Voice.onSpeechResults = (event: SpeechResultsEvent) => {
-      const result = event.value?.[0];
-      if (result) setDraft(result);
-    };
-    Voice.onSpeechEnd = () => setListening(false);
-    Voice.onSpeechError = (event: SpeechErrorEvent) => {
-      setListening(false);
-      Alert.alert("Je n’ai pas compris", event.error?.message ?? "Réessaie en parlant distinctement.");
-    };
-    return () => {
-      Voice.destroy().then(Voice.removeAllListeners);
-    };
-  }, []);
+  useSpeechRecognitionEvent("start", () => setListening(true));
+  useSpeechRecognitionEvent("end", () => setListening(false));
+  useSpeechRecognitionEvent("result", (event) => {
+    const result = event.results[0]?.transcript;
+    if (result) setDraft(result);
+  });
+  useSpeechRecognitionEvent("error", (event) => {
+    setListening(false);
+    Alert.alert("Je n’ai pas compris", event.message ?? "Réessaie en parlant distinctement.");
+  });
 
   useEffect(() => {
     if (ready) saveReminders(reminders).catch(() => undefined);
@@ -69,12 +65,20 @@ export default function App() {
   async function toggleListening() {
     try {
       if (listening) {
-        await Voice.stop();
+        ExpoSpeechRecognitionModule.stop();
         setListening(false);
       } else {
+        const permission = await ExpoSpeechRecognitionModule.requestPermissionsAsync();
+        if (!permission.granted) {
+          Alert.alert("Micro indisponible", "Autorise le micro dans les réglages du téléphone.");
+          return;
+        }
         setDraft("");
-        setListening(true);
-        await Voice.start("fr-FR");
+        ExpoSpeechRecognitionModule.start({
+          lang: device.locale,
+          interimResults: true,
+          continuous: false
+        });
       }
     } catch {
       setListening(false);

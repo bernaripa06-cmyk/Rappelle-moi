@@ -23,7 +23,7 @@
     "plugins": [
       "expo-notifications",
       [
-        "@react-native-voice/voice",
+        "expo-speech-recognition",
         {
           "microphonePermission": "Autoriser Rappelle-moi à utiliser le micro.",
           "speechRecognitionPermission": "Autoriser Rappelle-moi à reconnaître votre voix."
