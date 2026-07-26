@@ -1,0 +1,27 @@
+{
+  "name": "rappelle-moi",
+  "version": "0.1.0",
+  "private": true,
+  "main": "node_modules/expo/AppEntry.js",
+  "scripts": {
+    "start": "expo start",
+    "android": "expo run:android",
+    "ios": "expo run:ios",
+    "typecheck": "tsc --noEmit",
+    "test": "node --import tsx --test src/lib/parser.test.ts"
+  },
+  "dependencies": {
+    "@react-native-async-storage/async-storage": "2.1.2",
+    "@react-native-voice/voice": "^3.2.4",
+    "expo": "~53.0.20",
+    "expo-notifications": "~0.31.4",
+    "expo-status-bar": "~2.2.3",
+    "react": "19.0.0",
+    "react-native": "0.79.5"
+  },
+  "devDependencies": {
+    "@types/react": "~19.0.10",
+    "tsx": "^4.20.3",
+    "typescript": "~5.8.3"
+  }
+}

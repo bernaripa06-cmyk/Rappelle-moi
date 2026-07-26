@@ -1,0 +1,34 @@
+{
+  "expo": {
+    "name": "Rappelle-moi",
+    "slug": "rappelle-moi",
+    "version": "0.1.0",
+    "orientation": "portrait",
+    "userInterfaceStyle": "light",
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "com.bernard.rappellemoi",
+      "infoPlist": {
+        "NSMicrophoneUsageDescription": "Rappelle-moi utilise le micro pour enregistrer vos rappels.",
+        "NSSpeechRecognitionUsageDescription": "Rappelle-moi transforme votre voix en rappel."
+      }
+    },
+    "android": {
+      "package": "com.bernard.rappellemoi",
+      "permissions": [
+        "RECORD_AUDIO",
+        "POST_NOTIFICATIONS"
+      ]
+    },
+    "plugins": [
+      "expo-notifications",
+      [
+        "@react-native-voice/voice",
+        {
+          "microphonePermission": "Autoriser Rappelle-moi à utiliser le micro.",
+          "speechRecognitionPermission": "Autoriser Rappelle-moi à reconnaître votre voix."
+        }
+      ]
+    ]
+  }
+}
