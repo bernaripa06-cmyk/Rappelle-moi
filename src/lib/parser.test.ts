@@ -27,3 +27,20 @@ test("comprend un anniversaire", () => {
   assert.equal(reminder.category, "birthday");
   assert.equal(new Date(reminder.dueAt!).getFullYear(), 2027);
 });
+
+test("comprend un rappel anglais", () => {
+  const reminder = parseReminder("Tomorrow at 2 pm call Stefano", NOW, "en-US");
+  assert.equal(new Date(reminder.dueAt!).getHours(), 14);
+  assert.equal(new Date(reminder.dueAt!).getDate(), NOW.getDate() + 1);
+});
+
+test("comprend un délai allemand", () => {
+  const reminder = parseReminder("In 20 Minuten Stefano anrufen", NOW, "de-DE");
+  assert.equal(new Date(reminder.dueAt!).getTime() - NOW.getTime(), 20 * 60 * 1000);
+});
+
+test("comprend un rappel thaï", () => {
+  const reminder = parseReminder("พรุ่งนี้ เวลา 14:00 โทรหาสเตฟาโน", NOW, "th-TH");
+  assert.equal(new Date(reminder.dueAt!).getHours(), 14);
+  assert.equal(new Date(reminder.dueAt!).getDate(), NOW.getDate() + 1);
+});

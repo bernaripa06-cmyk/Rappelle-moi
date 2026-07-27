@@ -39,17 +39,47 @@ function normalized(value: string): string {
   return value.trim().replace(/\s+/g, " ");
 }
 
+const TEMPORAL_RULES: Record<string, Array<[RegExp, string]>> = {
+  en: [[/\bday after tomorrow\b/gi, "après-demain"], [/\btomorrow\b/gi, "demain"], [/\btoday\b/gi, "aujourd'hui"], [/\bat\s+(?=\d)/gi, "à "], [/\bin\s+(?=\d)/gi, "dans "], [/\bminutes?\b/gi, "minutes"], [/\bhours?\b/gi, "heures"], [/\bdays?\b/gi, "jours"], [/\bweeks?\b/gi, "semaines"]],
+  de: [[/\bübermorgen\b/gi, "après-demain"], [/\bmorgen\b/gi, "demain"], [/\bheute\b/gi, "aujourd'hui"], [/\bum\s+(?=\d)/gi, "à "], [/\bin\s+(?=\d)/gi, "dans "], [/\buhr\b/gi, "h"], [/\bminuten?\b/gi, "minutes"], [/\bstunden?\b/gi, "heures"], [/\btagen?\b/gi, "jours"], [/\bwochen?\b/gi, "semaines"]],
+  es: [[/\bpasado mañana\b/gi, "après-demain"], [/\bmañana\b/gi, "demain"], [/\bhoy\b/gi, "aujourd'hui"], [/\ba las?\s+(?=\d)/gi, "à "], [/\ben\s+(?=\d)/gi, "dans "], [/\bminutos?\b/gi, "minutes"], [/\bhoras?\b/gi, "heures"], [/\bdías?\b/gi, "jours"], [/\bsemanas?\b/gi, "semaines"]],
+  it: [[/\bdopodomani\b/gi, "après-demain"], [/\bdomani\b/gi, "demain"], [/\boggi\b/gi, "aujourd'hui"], [/\balle?\s+(?=\d)/gi, "à "], [/\b(?:tra|fra)\s+(?=\d)/gi, "dans "], [/\bminuti?\b/gi, "minutes"], [/\bore\b/gi, "heures"], [/\bgiorni?\b/gi, "jours"], [/\bsettimane?\b/gi, "semaines"]],
+  pt: [[/\bdepois de amanhã\b/gi, "après-demain"], [/\bamanhã\b/gi, "demain"], [/\bhoje\b/gi, "aujourd'hui"], [/\bàs?\s+(?=\d)/gi, "à "], [/\b(?:em|daqui a)\s+(?=\d)/gi, "dans "], [/\bminutos?\b/gi, "minutes"], [/\bhoras?\b/gi, "heures"], [/\bdias?\b/gi, "jours"], [/\bsemanas?\b/gi, "semaines"]],
+  nl: [[/\bovermorgen\b/gi, "après-demain"], [/\bmorgen\b/gi, "demain"], [/\bvandaag\b/gi, "aujourd'hui"], [/\bom\s+(?=\d)/gi, "à "], [/\bminuten?\b/gi, "minutes"], [/\buren?\b/gi, "heures"], [/\bdagen?\b/gi, "jours"], [/\bweken?\b/gi, "semaines"]],
+  ru: [[/послезавтра/gi, "après-demain"], [/завтра/gi, "demain"], [/сегодня/gi, "aujourd'hui"], [/\bв\s+(?=\d)/gi, "à "], [/минут[уы]?/gi, "minutes"], [/час(?:а|ов)?/gi, "heures"], [/дн(?:я|ей)/gi, "jours"], [/недел(?:ю|и|ь)/gi, "semaines"], [/через\s+/gi, "dans "]],
+  uk: [[/післязавтра/gi, "après-demain"], [/завтра/gi, "demain"], [/сьогодні/gi, "aujourd'hui"], [/\bо\s+(?=\d)/gi, "à "], [/хвилин(?:у|и)?/gi, "minutes"], [/годин(?:у|и)?/gi, "heures"], [/дн(?:і|ів)/gi, "jours"], [/тиж(?:день|ні)/gi, "semaines"], [/через\s+/gi, "dans "]],
+  th: [[/มะรืน/gi, " après-demain "], [/พรุ่งนี้/gi, " demain "], [/วันนี้/gi, " aujourd'hui "], [/อีก\s*/gi, " dans "], [/นาที/gi, " minutes "], [/ชั่วโมง/gi, " heures "], [/วัน/gi, " jours "], [/สัปดาห์/gi, " semaines "], [/(?:เวลา|ตอน)\s*(?=\d)/gi, " à "], [/นาฬิกา/gi, " h "]],
+  ar: [[/بعد غد/gi, " après-demain "], [/غد(?:اً|ا)?/gi, " demain "], [/اليوم/gi, " aujourd'hui "], [/بعد\s+/gi, " dans "], [/دقائق?|دقيقة/gi, " minutes "], [/ساعات?|ساعة/gi, " heures "], [/أيام?|يوم/gi, " jours "], [/أسابيع?|أسبوع/gi, " semaines "], [/الساعة\s*(?=\d)/gi, " à "]],
+  hi: [[/परसों/gi, " après-demain "], [/कल/gi, " demain "], [/आज/gi, " aujourd'hui "], [/मिनट/gi, " minutes "], [/घंटे?/gi, " heures "], [/दिन/gi, " jours "], [/सप्ताह/gi, " semaines "], [/बजे/gi, " h "]],
+  vi: [[/ngày kia/gi, "après-demain"], [/ngày mai/gi, "demain"], [/hôm nay/gi, "aujourd'hui"], [/\blúc\s+(?=\d)/gi, "à "], [/\bphút\b/gi, "minutes"], [/\bgiờ\b/gi, "heures"], [/\bngày\b/gi, "jours"], [/\btuần\b/gi, "semaines"], [/\bsau\s+/gi, "dans "]],
+  id: [[/lusa/gi, "après-demain"], [/besok/gi, "demain"], [/hari ini/gi, "aujourd'hui"], [/\bpukul\s+(?=\d)/gi, "à "], [/\bmenit\b/gi, "minutes"], [/\bjam\b/gi, "heures"], [/\bhari\b/gi, "jours"], [/\bminggu\b/gi, "semaines"], [/\bdalam\s+/gi, "dans "]],
+  zh: [[/后天/gi, " après-demain "], [/明天/gi, " demain "], [/今天/gi, " aujourd'hui "], [/分钟/gi, " minutes "], [/小时/gi, " heures "], [/周|星期/gi, " semaines "], [/点/gi, " h "], [/后/gi, " dans "]],
+  ja: [[/明後日/gi, " après-demain "], [/明日|あした/gi, " demain "], [/今日/gi, " aujourd'hui "], [/分後/gi, " minutes "], [/時間後/gi, " heures "], [/日後/gi, " jours "], [/週間後/gi, " semaines "], [/時/gi, " h "]],
+  ko: [[/모레/gi, " après-demain "], [/내일/gi, " demain "], [/오늘/gi, " aujourd'hui "], [/분 후/gi, " minutes "], [/시간 후/gi, " heures "], [/일 후/gi, " jours "], [/주 후/gi, " semaines "], [/시에?/gi, " h "]]
+};
+
+function canonicalTemporalText(text: string, locale: string): string {
+  const language = locale.split(/[-_]/)[0]?.toLowerCase() || "fr";
+  return (TEMPORAL_RULES[language] ?? []).reduce(
+    (current, [pattern, replacement]) => current.replace(pattern, replacement),
+    text
+  );
+}
+
 function inferCategory(text: string): ReminderCategory {
   return CATEGORY_PATTERNS.find(([, pattern]) => pattern.test(text))?.[0] ?? "task";
 }
 
 function applyTime(date: Date, text: string): Date {
   const match = text.match(
-    /(?:à|a|vers)\s*(\d{1,2})(?:(?:\s*h(?:\s*(\d{1,2}))?)|(?:\s*:\s*(\d{1,2})))?\b/i
+    /(?:à|a|vers)\s*(\d{1,2})(?:(?:\s*h(?:\s*(\d{1,2}))?)|(?:\s*:\s*(\d{1,2})))?\s*(am|pm)?\b/i
   );
   if (match) {
-    const hours = Number(match[1]);
+    let hours = Number(match[1]);
     const minutes = Number(match[2] ?? match[3] ?? 0);
+    const period = match[4]?.toLowerCase();
+    if (period === "pm" && hours < 12) hours += 12;
+    if (period === "am" && hours === 12) hours = 0;
     if (hours <= 23 && minutes <= 59) date.setHours(hours, minutes, 0, 0);
   } else if (/\bmatin\b/i.test(text)) {
     date.setHours(9, 0, 0, 0);
@@ -132,11 +162,12 @@ function cleanTitle(text: string): string {
   return normalized(cleaned) || normalized(text);
 }
 
-export function parseReminder(text: string, now = new Date()): ParsedReminder {
+export function parseReminder(text: string, now = new Date(), locale = "fr-FR"): ParsedReminder {
   const rawText = normalized(text);
+  const temporalText = normalized(canonicalTemporalText(rawText, locale));
   const dueAt =
-    parseRelative(rawText, now)?.toISOString() ??
-    parseCalendarDate(rawText, now)?.toISOString() ??
+    parseRelative(temporalText, now)?.toISOString() ??
+    parseCalendarDate(temporalText, now)?.toISOString() ??
     null;
   return {
     rawText,

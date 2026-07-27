@@ -1,14 +1,7 @@
 import { Pressable, StyleSheet, Text, View } from "react-native";
 import { Reminder, ReminderCategory } from "../types/reminder";
 import { formatLocalDate, getDeviceContext } from "../lib/device";
-
-const LABELS: Record<ReminderCategory, string> = {
-  call: "APPEL",
-  task: "À FAIRE",
-  birthday: "ANNIVERSAIRE",
-  shopping: "COURSES",
-  note: "NOTE"
-};
+import { Messages } from "../lib/i18n";
 
 const COLORS: Record<ReminderCategory, string> = {
   call: "#1976D2",
@@ -19,14 +12,15 @@ const COLORS: Record<ReminderCategory, string> = {
 };
 
 type Props = {
+  messages: Messages;
   reminder: Reminder;
   onToggle: (id: string) => void;
 };
 
-export function ReminderCard({ reminder, onToggle }: Props) {
+export function ReminderCard({ messages, reminder, onToggle }: Props) {
   const date = reminder.dueAt
     ? formatLocalDate(reminder.dueAt, getDeviceContext())
-    : "Sans date";
+    : messages.noDate;
 
   return (
     <Pressable
@@ -41,7 +35,7 @@ export function ReminderCard({ reminder, onToggle }: Props) {
           {reminder.title}
         </Text>
         <Text style={styles.meta}>
-          {LABELS[reminder.category]} · {date}
+          {messages.categories[reminder.category]} · {date}
         </Text>
       </View>
       <View style={[styles.check, reminder.completed && styles.checked]}>

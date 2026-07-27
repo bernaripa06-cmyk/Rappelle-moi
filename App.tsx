@@ -3,7 +3,7 @@ import {
   useSpeechRecognitionEvent
 } from "expo-speech-recognition";
 import { StatusBar } from "expo-status-bar";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import {
   Alert,
   FlatList,
@@ -18,6 +18,7 @@ import {
 } from "react-native";
 import { ReminderCard } from "./src/components/ReminderCard";
 import { getDeviceContext } from "./src/lib/device";
+import { getMessages } from "./src/lib/i18n";
 import { cancelReminder, requestNotificationPermission, scheduleReminder } from "./src/lib/notifications";
 import { parseReminder } from "./src/lib/parser";
 import { loadReminders, saveReminders } from "./src/lib/storage";
@@ -25,10 +26,13 @@ import { Reminder } from "./src/types/reminder";
 
 export default function App() {
   const device = useMemo(() => getDeviceContext(), []);
+  const messages = useMemo(() => getMessages(device.locale), [device.locale]);
   const [reminders, setReminders] = useState<Reminder[]>([]);
   const [draft, setDraft] = useState("");
   const [listening, setListening] = useState(false);
   const [ready, setReady] = useState(false);
+  const voiceCommitted = useRef(false);
+  const voiceTranscript = useRef("");
 
   useEffect(() => {
     loadReminders().then((items) => {
@@ -39,14 +43,26 @@ export default function App() {
   }, []);
 
   useSpeechRecognitionEvent("start", () => setListening(true));
-  useSpeechRecognitionEvent("end", () => setListening(false));
+  useSpeechRecognitionEvent("end", () => {
+    setListening(false);
+    if (!voiceCommitted.current && voiceTranscript.current.trim()) {
+      voiceCommitted.current = true;
+      void addReminder(voiceTranscript.current);
+    }
+  });
   useSpeechRecognitionEvent("result", (event) => {
     const result = event.results[0]?.transcript;
-    if (result) setDraft(result);
+    if (!result) return;
+    voiceTranscript.current = result;
+    setDraft(result);
+    if (event.isFinal && !voiceCommitted.current) {
+      voiceCommitted.current = true;
+      void addReminder(result);
+    }
   });
   useSpeechRecognitionEvent("error", (event) => {
     setListening(false);
-    Alert.alert("Je n’ai pas compris", event.message ?? "Réessaie en parlant distinctement.");
+    Alert.alert(messages.notUnderstood, event.message ?? messages.tryAgain);
   });
 
   useEffect(() => {
@@ -72,10 +88,12 @@ export default function App() {
 
       const permission = await ExpoSpeechRecognitionModule.requestPermissionsAsync();
       if (!permission.granted) {
-        Alert.alert("Micro indisponible", "Autorise le micro dans les réglages du téléphone.");
+        Alert.alert(messages.microphoneUnavailable, messages.allowMicrophone);
         return;
       }
 
+      voiceCommitted.current = false;
+      voiceTranscript.current = "";
       setDraft("");
       ExpoSpeechRecognitionModule.start({
         lang: device.locale,
@@ -84,13 +102,13 @@ export default function App() {
       });
     } catch {
       setListening(false);
-      Alert.alert("Micro indisponible", "Vérifie l’autorisation du micro dans les réglages.");
+      Alert.alert(messages.microphoneUnavailable, messages.allowMicrophone);
     }
   }
 
-  async function addReminder() {
-    if (!draft.trim()) return;
-    const parsed = parseReminder(draft);
+  async function addReminder(text = draft) {
+    if (!text.trim()) return;
+    const parsed = parseReminder(text, new Date(), device.locale);
     const id = `${Date.now()}-${Math.random().toString(16).slice(2)}`;
     const reminder: Reminder = {
       ...parsed,
@@ -136,9 +154,9 @@ export default function App() {
         <View style={styles.header}>
           <View>
             <Text style={styles.brand}>RAPPELLE-MOI</Text>
-            <Text style={styles.headline}>Bonjour Bernard.</Text>
+            <Text style={styles.headline}>{messages.greeting}</Text>
             <Text style={styles.subtitle}>
-              {todayCount ? `${todayCount} chose${todayCount > 1 ? "s" : ""} à ne pas oublier aujourd’hui.` : "Rien d’urgent aujourd’hui."}
+              {todayCount ? `${todayCount} ${messages.active}` : messages.nothingUrgent}
             </Text>
             <Text style={styles.localInfo}>
               {device.country ? `${device.country} · ` : ""}{device.timeZone}
@@ -149,7 +167,7 @@ export default function App() {
 
         <View style={styles.capture}>
           <Text style={styles.captureTitle}>
-            {listening ? "Je t’écoute…" : "Qu’est-ce que je dois retenir ?"}
+            {listening ? messages.listening : messages.question}
           </Text>
           <Pressable
             accessibilityLabel={listening ? "Arrêter l’écoute" : "Dicter un rappel"}
@@ -159,30 +177,30 @@ export default function App() {
             <Text style={styles.micIcon}>{listening ? "■" : "●"}</Text>
           </Pressable>
           <Text style={styles.example}>
-            « Demain à 14 h, appeler Stefano »
+            {messages.example}
           </Text>
           <View style={styles.inputRow}>
             <TextInput
               onChangeText={setDraft}
-              onSubmitEditing={addReminder}
-              placeholder="Ou écris ton rappel…"
+              onSubmitEditing={() => void addReminder()}
+              placeholder={messages.placeholder}
               returnKeyType="done"
               style={styles.input}
               value={draft}
             />
             <Pressable
               disabled={!draft.trim()}
-              onPress={addReminder}
+              onPress={() => void addReminder()}
               style={[styles.addButton, !draft.trim() && styles.addDisabled]}
             >
-              <Text style={styles.addText}>Ajouter</Text>
+              <Text style={styles.addText}>{messages.add}</Text>
             </Pressable>
           </View>
         </View>
 
         <View style={styles.listHeader}>
-          <Text style={styles.listTitle}>Mes rappels</Text>
-          <Text style={styles.listCount}>{reminders.filter((item) => !item.completed).length} actifs</Text>
+          <Text style={styles.listTitle}>{messages.reminders}</Text>
+          <Text style={styles.listCount}>{reminders.filter((item) => !item.completed).length} {messages.active}</Text>
         </View>
 
         <FlatList
@@ -190,10 +208,10 @@ export default function App() {
           data={reminders}
           keyExtractor={(item) => item.id}
           ListEmptyComponent={
-            <Text style={styles.empty}>Parle-moi : ton premier rappel apparaîtra ici.</Text>
+            <Text style={styles.empty}>{messages.empty}</Text>
           }
           renderItem={({ item }) => (
-            <ReminderCard reminder={item} onToggle={toggleReminder} />
+            <ReminderCard messages={messages} reminder={item} onToggle={toggleReminder} />
           )}
           showsVerticalScrollIndicator={false}
         />
