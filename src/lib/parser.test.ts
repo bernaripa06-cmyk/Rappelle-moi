@@ -16,6 +16,12 @@ test("comprend un délai en minutes", () => {
   assert.equal(new Date(reminder.dueAt!).getTime() - NOW.getTime(), 20 * 60 * 1000);
 });
 
+test("comprend un délai prononcé en lettres", () => {
+  const reminder = parseReminder("Rappelle-moi d'aller manger avec Mimi dans une heure", NOW);
+  assert.equal(new Date(reminder.dueAt!).getTime() - NOW.getTime(), 60 * 60 * 1000);
+  assert.equal(reminder.title, "d'aller manger avec Mimi");
+});
+
 test("classe une liste de courses", () => {
   const reminder = parseReminder("Ajoute beurre et café à la liste de courses", NOW);
   assert.equal(reminder.category, "shopping");

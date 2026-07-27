@@ -35,6 +35,24 @@ const CATEGORY_PATTERNS: Array<[ReminderCategory, RegExp]> = [
   ["note", /\b(note|idée|idee|souviens)\b/i]
 ];
 
+const NUMBER_WORDS: Record<string, number> = {
+  un: 1, une: 1, deux: 2, trois: 3, quatre: 4, cinq: 5,
+  six: 6, sept: 7, huit: 8, neuf: 9, dix: 10,
+  onze: 11, douze: 12, treize: 13, quatorze: 14, quinze: 15,
+  seize: 16, "dix-sept": 17, "dix-huit": 18, "dix-neuf": 19, vingt: 20,
+  one: 1, two: 2, three: 3, four: 4, five: 5,
+  ein: 1, eins: 1, eine: 1, einen: 1, zwei: 2, drei: 3, vier: 4, fünf: 5,
+  uno: 1, una: 1, dos: 2, tres: 3, cuatro: 4, cinco: 5,
+  um: 1, uma: 1, dois: 2, duas: 2,
+  due: 2, tre: 3, "หนึ่ง": 1, "สอง": 2, "สาม": 3, "สี่": 4, "ห้า": 5
+};
+
+const NUMBER_TOKEN = String.raw`\d+|un|une|deux|trois|quatre|cinq|six|sept|huit|neuf|dix|onze|douze|treize|quatorze|quinze|seize|dix-sept|dix-huit|dix-neuf|vingt|one|two|three|four|five|ein|eins|eine|einen|zwei|drei|vier|fünf|uno|una|dos|tres|cuatro|cinco|um|uma|dois|duas|due|หนึ่ง|สอง|สาม|สี่|ห้า`;
+
+function numericValue(token: string): number {
+  return /^\d+$/.test(token) ? Number(token) : (NUMBER_WORDS[token.toLowerCase()] ?? NaN);
+}
+
 function normalized(value: string): string {
   return value.trim().replace(/\s+/g, " ");
 }
@@ -94,11 +112,13 @@ function applyTime(date: Date, text: string): Date {
 }
 
 function parseRelative(text: string, now: Date): Date | null {
-  const relative = text.match(
-    /\bdans\s+(\d+)\s*(minute|minutes|heure|heures|jour|jours|semaine|semaines)\b/i
-  );
+  const relative = text.match(new RegExp(
+    String.raw`\bdans\s+(${NUMBER_TOKEN})\s*(minute|minutes|heure|heures|jour|jours|semaine|semaines)\b`,
+    "i"
+  ));
   if (!relative) return null;
-  const value = Number(relative[1]);
+  const value = numericValue(relative[1] ?? "");
+  if (!Number.isFinite(value)) return null;
   const unit = relative[2]?.toLowerCase() ?? "";
   const date = new Date(now);
   if (unit.startsWith("minute")) date.setMinutes(date.getMinutes() + value);
@@ -153,7 +173,10 @@ function cleanTitle(text: string): string {
   const cleaned = text
     .replace(/\b(?:rappelle-moi|rappelle moi|pense à|pense a)\b/gi, "")
     .replace(/\b(?:aujourd'hui|aujourdhui|demain|après-demain|apres-demain)\b/gi, "")
-    .replace(/\bdans\s+\d+\s*(?:minutes?|heures?|jours?|semaines?)\b/gi, "")
+    .replace(new RegExp(
+      String.raw`\bdans\s+(?:${NUMBER_TOKEN})\s*(?:minutes?|heures?|jours?|semaines?)\b`,
+      "gi"
+    ), "")
     .replace(/\b(?:ce\s+)?(?:matin|midi|soir)\b/gi, "")
     .replace(/(?:à|a|vers)\s*\d{1,2}(?:(?:\s*h(?:\s*\d{1,2})?)|(?:\s*:\s*\d{1,2}))?\b/gi, "")
     .replace(/\b(?:lundi|mardi|mercredi|jeudi|vendredi|samedi|dimanche)\b/gi, "")
