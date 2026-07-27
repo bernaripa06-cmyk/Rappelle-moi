@@ -58,19 +58,29 @@ export default function App() {
   async function addReminder() {
     if (!draft.trim()) return;
     const parsed = parseReminder(draft);
-    const notificationId = parsed.dueAt
-      ? await scheduleReminder(parsed.title, parsed.dueAt)
-      : undefined;
+    const id = `${Date.now()}-${Math.random().toString(16).slice(2)}`;
     const reminder: Reminder = {
       ...parsed,
-      id: `${Date.now()}-${Math.random().toString(16).slice(2)}`,
+      id,
       completed: false,
       createdAt: new Date().toISOString(),
-      notificationId,
       timeZone: device.timeZone
     };
     setReminders((current) => [reminder, ...current]);
     setDraft("");
+
+    if (parsed.dueAt) {
+      scheduleReminder(parsed.title, parsed.dueAt)
+        .then((notificationId) => {
+          if (!notificationId) return;
+          setReminders((current) =>
+            current.map((item) =>
+              item.id === id ? { ...item, notificationId } : item
+            )
+          );
+        })
+        .catch(() => undefined);
+    }
   }
 
   async function toggleReminder(id: string) {
