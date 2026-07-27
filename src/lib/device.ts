@@ -12,18 +12,31 @@ function detectCountry(locale: string): string | null {
 }
 
 export function getDeviceContext(): DeviceContext {
-  const resolved = Intl.DateTimeFormat().resolvedOptions();
-  const locale = resolved.locale || "fr-FR";
-  const hourParts = new Intl.DateTimeFormat(locale, { hour: "numeric" })
-    .formatToParts(new Date(2026, 0, 1, 13))
-    .map((part) => part.type);
+  let locale = "fr-FR";
+  let timeZone = "UTC";
+  let uses24HourClock = true;
+
+  try {
+    const resolved = Intl.DateTimeFormat().resolvedOptions();
+    locale = resolved.locale || locale;
+    timeZone = resolved.timeZone || timeZone;
+
+    const formatter = new Intl.DateTimeFormat(locale, { hour: "numeric" });
+    if (typeof formatter.formatToParts === "function") {
+      uses24HourClock = !formatter
+        .formatToParts(new Date(2026, 0, 1, 13))
+        .some((part) => part.type === "dayPeriod");
+    }
+  } catch {
+    // Keep safe defaults on older Android devices.
+  }
 
   return {
     locale,
     language: locale.split(/[-_]/)[0]?.toLowerCase() || "fr",
     country: detectCountry(locale),
-    timeZone: resolved.timeZone || "UTC",
-    uses24HourClock: !hourParts.includes("dayPeriod")
+    timeZone,
+    uses24HourClock
   };
 }
 

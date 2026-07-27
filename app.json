@@ -3,6 +3,7 @@
     "name": "Rappelle-moi",
     "slug": "rappelle-moi",
     "version": "0.1.0",
+    "newArchEnabled": false,
     "orientation": "portrait",
     "userInterfaceStyle": "light",
     "ios": {

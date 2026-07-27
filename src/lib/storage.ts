@@ -8,7 +8,12 @@ export async function loadReminders(): Promise<Reminder[]> {
   if (!value) return [];
   try {
     const parsed = JSON.parse(value) as Array<Reminder & { timeZone?: string }>;
-    const timeZone = Intl.DateTimeFormat().resolvedOptions().timeZone || "UTC";
+    let timeZone = "UTC";
+    try {
+      timeZone = Intl.DateTimeFormat().resolvedOptions().timeZone || timeZone;
+    } catch {
+      // Keep the safe default on older Android devices.
+    }
     return parsed.map((item) => ({ ...item, timeZone: item.timeZone ?? timeZone }));
   } catch {
     return [];
