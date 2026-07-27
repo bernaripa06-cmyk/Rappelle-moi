@@ -1,7 +1,3 @@
-import {
-  ExpoSpeechRecognitionModule,
-  useSpeechRecognitionEvent
-} from "expo-speech-recognition";
 import { StatusBar } from "expo-status-bar";
 import { useEffect, useMemo, useState } from "react";
 import {
@@ -38,17 +34,6 @@ export default function App() {
     requestNotificationPermission().catch(() => undefined);
   }, []);
 
-  useSpeechRecognitionEvent("start", () => setListening(true));
-  useSpeechRecognitionEvent("end", () => setListening(false));
-  useSpeechRecognitionEvent("result", (event) => {
-    const result = event.results[0]?.transcript;
-    if (result) setDraft(result);
-  });
-  useSpeechRecognitionEvent("error", (event) => {
-    setListening(false);
-    Alert.alert("Je n’ai pas compris", event.message ?? "Réessaie en parlant distinctement.");
-  });
-
   useEffect(() => {
     if (ready) saveReminders(reminders).catch(() => undefined);
   }, [ready, reminders]);
@@ -62,28 +47,12 @@ export default function App() {
     [reminders]
   );
 
-  async function toggleListening() {
-    try {
-      if (listening) {
-        ExpoSpeechRecognitionModule.stop();
-        setListening(false);
-      } else {
-        const permission = await ExpoSpeechRecognitionModule.requestPermissionsAsync();
-        if (!permission.granted) {
-          Alert.alert("Micro indisponible", "Autorise le micro dans les réglages du téléphone.");
-          return;
-        }
-        setDraft("");
-        ExpoSpeechRecognitionModule.start({
-          lang: device.locale,
-          interimResults: true,
-          continuous: false
-        });
-      }
-    } catch {
-      setListening(false);
-      Alert.alert("Micro indisponible", "Vérifie l’autorisation du micro dans les réglages.");
-    }
+  function toggleListening() {
+    setListening(false);
+    Alert.alert(
+      "Commande vocale temporairement désactivée",
+      "Cette version vérifie d’abord la stabilité sur ton téléphone. Utilise la saisie écrite."
+    );
   }
 
   async function addReminder() {
