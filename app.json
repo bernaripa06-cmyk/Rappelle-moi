@@ -16,10 +16,20 @@
     },
     "android": {
       "package": "com.bernard.rappellemoi",
-      "permissions": ["POST_NOTIFICATIONS"]
+      "permissions": [
+        "RECORD_AUDIO",
+        "POST_NOTIFICATIONS"
+      ]
     },
     "plugins": [
-      "expo-notifications"
+      "expo-notifications",
+      [
+        "expo-speech-recognition",
+        {
+          "microphonePermission": "Autoriser Rappelle-moi à utiliser le micro.",
+          "speechRecognitionPermission": "Autoriser Rappelle-moi à reconnaître votre voix."
+        }
+      ]
     ]
   }
 }
